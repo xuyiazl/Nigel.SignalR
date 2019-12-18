@@ -3,3 +3,7 @@
 ################################################################################
 
 /.vs/Nigel.SignalR/v16/Server/sqlite3
+/.vs/Nigel.SignalR/v16
+/Nigel.SignalR.Client
+/Nigel.SignalR.Server/bin/Debug/netcoreapp3.0
+/Nigel.SignalR.Server/obj
