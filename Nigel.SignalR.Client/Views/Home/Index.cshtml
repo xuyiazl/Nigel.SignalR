@@ -1,0 +1,64 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@section Scripts{
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/lib/signalr-protocol-msgpack/msgpack5.min.js"></script>
+    <script src="~/lib/signalr-protocol-msgpack/signalr-protocol-msgpack.min.js"></script>
+
+    <script type="text/javascript">
+        var connection = new signalR.HubConnectionBuilder()
+            .configureLogging(signalR.LogLevel.Error)
+            .withUrl("http://127.0.0.1:8080/hubs/broadcast", {
+                accessTokenFactory: null,
+                skipNegotiation: false,
+                transport: signalR.HttpTransportType.WebSockets
+            })
+            .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol()) // 使用Messagepack来解析推送的数据
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 20000]) // 配置重连的时间
+            .build();
+
+        connection.on('BroadcastMessage', (data) => {
+            var liElement = document.createElement('li');
+            liElement.innerHTML = data.ConnectionId + ' : ' + data.Content;
+            document.getElementById('discussion').appendChild(liElement);
+        });
+
+        // 重连的时候触发
+        connection.onreconnecting(function (err) {
+            console.info('signalr-- onreconnecting', err);
+        });
+
+        //连接关闭的回调
+        connection.onclose(function (err) {
+            console.info('signalr-- onclose', err);
+        });
+
+        connection.start().then(function (data) {
+            console.log('已成功连接到signalr服务器')
+        }).catch(function (error) {
+            console.error(error.toString());
+        });
+
+        $('#getValues').click(function () {
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json',
+                url: '/api/Signal/Broadcast',
+                data: JSON.stringify({ ConnectionId: connection.connectionId, Content: "aaaaaaaaaaaaaaaaaa" }),
+                success: function (res) {
+                    console.log(res);
+                }
+            })
+        })
+
+    </script>
+
+}
+<div class="container">
+    <input type="button" id="getValues" value="Send" />
+    <ul id="discussion"></ul>
+</div>
