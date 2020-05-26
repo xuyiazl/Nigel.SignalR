@@ -10,7 +10,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Nigel.Core;
+using Nigel.Extensions;
 using Nigel.SignalR.Server.Hubs;
+using StackExchange.Redis;
 
 namespace Nigel.SignalR.Server
 {
@@ -38,7 +40,7 @@ namespace Nigel.SignalR.Server
             {
                 builder
                       .SetIsOriginAllowedToAllowWildcardSubdomains()
-                      .WithOrigins(Configuration["App:CorsOrigins"].ToStringArray(",", "，"))
+                      .WithOrigins(Configuration["App:CorsOrigins"].Split(",", true))
                       .AllowAnyHeader()
                       .AllowAnyMethod()
                       .AllowCredentials()
@@ -60,6 +62,35 @@ namespace Nigel.SignalR.Server
                 }
             })
             .AddMessagePackProtocol()
+            // 使用redis做底板 支持横向扩展 Scale-out
+            //.AddStackExchangeRedis(o =>
+            //{
+            //    o.ConnectionFactory = async writer =>
+            //    {
+            //        var config = new ConfigurationOptions
+            //        {
+            //            AbortOnConnectFail = false,
+            //            ChannelPrefix = "__signalr_",
+            //        };
+            //        config.DefaultDatabase = 10;
+            //        var connection = await ConnectionMultiplexer.ConnectAsync(appSetting.SignalrRedisCache.ConnectionString, writer);
+            //        connection.ConnectionFailed += (_, e) =>
+            //        {
+            //            Console.WriteLine("Connection to Redis failed.");
+            //        };
+
+            //        if (connection.IsConnected)
+            //        {
+            //            Console.WriteLine("connected to Redis.");
+            //        }
+            //        else
+            //        {
+            //            Console.WriteLine("Did not connect to Redis");
+            //        }
+
+            //        return connection;
+            //    };
+            //})
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNamingPolicy = null;
