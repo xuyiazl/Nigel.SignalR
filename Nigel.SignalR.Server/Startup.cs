@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MessagePack;
+using MessagePack.Resolvers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,7 +64,15 @@ namespace Nigel.SignalR.Server
                     options.EnableDetailedErrors = true;
                 }
             })
-            .AddMessagePackProtocol()
+            //.AddJsonProtocol()
+            .AddMessagePackProtocol(options =>
+            {
+                //options.SerializerOptions = StandardResolver.Options;
+                options.FormatterResolvers = new List<IFormatterResolver>(){
+                    StandardResolver.Instance,
+                    DynamicEnumAsStringResolver.Instance
+                };
+            })
             // 使用redis做底板 支持横向扩展 Scale-out
             //.AddStackExchangeRedis(o =>
             //{
@@ -91,11 +102,7 @@ namespace Nigel.SignalR.Server
             //        return connection;
             //    };
             //})
-            .AddJsonProtocol(options =>
-            {
-                options.PayloadSerializerOptions.PropertyNamingPolicy = null;
-            });
-
+            ;
             #endregion
 
             services.AddControllers();
@@ -121,7 +128,11 @@ namespace Nigel.SignalR.Server
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.MapHub<BroadcastHub>("/hubs/broadcast");
+                endpoints.MapHub<BroadcastHub>("/hubs/broadcast", options =>
+                {
+                    options.Transports = HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
+                    options.LongPolling.PollTimeout = TimeSpan.FromSeconds(10);
+                });
             });
 
             app.UseWebSockets();
